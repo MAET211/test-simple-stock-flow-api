@@ -10,8 +10,8 @@ declare(strict_types=1);
 /** @return list<string> */
 function domainFiles(): array
 {
-    $root = dirname(__DIR__, 2) . '/app/Core/Domain';
-    if (!is_dir($root)) {
+    $root = dirname(__DIR__, 2).'/app/Core/Domain';
+    if (! is_dir($root)) {
         return [];
     }
 
@@ -46,7 +46,7 @@ test('domain only imports its own namespace', function (): void {
     foreach (domainFiles() as $file) {
         preg_match_all('/^use\s+(?:function\s+|const\s+)?([^;\s]+)/m', (string) file_get_contents($file), $m);
         foreach ($m[1] as $import) {
-            expect($import)->toStartWith('App\Core\Domain\\', basename($file) . " imports $import");
+            expect($import)->toStartWith('App\Core\Domain\\', basename($file)." imports $import");
         }
     }
 });
@@ -54,6 +54,12 @@ test('domain only imports its own namespace', function (): void {
 test('domain has no floats, global date functions or debug calls', function (): void {
     $forbidden = '/(?<![>:\w$])(?:dd|dump|var_dump|date|time|strtotime|now|floatval|round)\s*\(|\bfloat\b/';
     foreach (domainFiles() as $file) {
-        expect(preg_match($forbidden, (string) file_get_contents($file)))->toBe(0, basename($file) . ' uses a forbidden construct');
+        expect(preg_match($forbidden, (string) file_get_contents($file)))->toBe(0, basename($file).' uses a forbidden construct');
     }
 });
+
+arch('application does not depend on Laravel or infrastructure')
+    ->expect('App\Core\Application')
+    ->not->toUse([
+        'Illuminate', 'App\Core\Infrastructure',
+    ]);

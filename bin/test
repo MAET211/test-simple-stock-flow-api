@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -e
+
+export MSYS_NO_PATHCONV=1
+
+ENV_FILE="../test-simple-stock-flow-infra/.env"
+if [ ! -f "$ENV_FILE" ]; then
+    echo "Error: $ENV_FILE does not exist. Please configure it in test-simple-stock-flow-infra." >&2
+    exit 1
+fi
+
+DB_ROOT_PASSWORD=$(grep -E '^DB_ROOT_PASSWORD=' "$ENV_FILE" | cut -d '=' -f2- | tr -d '\r')
+if [ -z "$DB_ROOT_PASSWORD" ]; then
+    echo "Error: DB_ROOT_PASSWORD not found or empty in $ENV_FILE" >&2
+    exit 1
+fi
+
+if [ -z "$(docker images -q stockflow-api-dev 2>/dev/null)" ]; then
+    echo "Building stockflow-api-dev image..."
+    docker build --build-arg INSTALL_DEV=1 -t stockflow-api-dev .
+fi
+
+if [ "$1" = "pint" ]; then
+    shift
+    exec docker run --rm \
+        -v "$PWD:/var/www/html" -v stockflow-api-vendor:/var/www/html/vendor -w /var/www/html \
+        stockflow-api-dev vendor/bin/pint "$@"
+elif [ "$1" = "phpstan" ]; then
+    shift
+    exec docker run --rm \
+        -v "$PWD:/var/www/html" -v stockflow-api-vendor:/var/www/html/vendor -w /var/www/html \
+        stockflow-api-dev vendor/bin/phpstan "$@"
+fi
+
+RUN_DB=0
+if [ $# -eq 0 ]; then
+    RUN_DB=1
+else
+    for arg in "$@"; do
+        case "$arg" in
+            *Integration*)
+                RUN_DB=1
+                break
+                ;;
+        esac
+    done
+fi
+
+if [ "$RUN_DB" = "1" ]; then
+    echo "Ensuring db container is running and healthy..."
+    docker compose -f ../test-simple-stock-flow-infra/docker-compose.yml --env-file "$ENV_FILE" up -d --wait db
+fi
+
+exec docker run --rm --network test-simple-stock-flow_default \
+    -v "$PWD:/var/www/html" -v stockflow-api-vendor:/var/www/html/vendor -w /var/www/html \
+    -e DB_HOST=db -e DB_PORT=3306 -e DB_DATABASE=stockflow_test \
+    -e DB_USERNAME=root -e DB_PASSWORD="$DB_ROOT_PASSWORD" \
+    stockflow-api-dev vendor/bin/pest "$@"

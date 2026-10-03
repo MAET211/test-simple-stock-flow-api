@@ -13,4 +13,9 @@
     <source>
         <include><directory>app</directory></include>
     </source>
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" force="true"/>
+        <env name="DB_DATABASE" value="stockflow_test" force="true"/>
+    </php>
 </phpunit>

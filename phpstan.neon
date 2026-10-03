@@ -1,5 +1,8 @@
-# A1: Larastan is added in A2, once bootstrap/app.php exists.
+includes:
+    - vendor/larastan/larastan/extension.neon
+
 parameters:
     level: max
     paths:
         - app
+        - tests/Support

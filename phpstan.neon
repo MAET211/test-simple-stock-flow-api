@@ -1,0 +1,5 @@
+# A1: Larastan is added in A2, once bootstrap/app.php exists.
+parameters:
+    level: max
+    paths:
+        - app

@@ -16,6 +16,15 @@ abstract class TestCase extends BaseTestCase
         /** @var Application $app */
         $app = require __DIR__.'/../bootstrap/app.php';
 
+        $envFile = $app->environmentPath().'/'.$app->environmentFile();
+        if (! file_exists($envFile)) {
+            $tempEnv = sys_get_temp_dir().'/.env';
+            if (! file_exists($tempEnv)) {
+                file_put_contents($tempEnv, '');
+            }
+            $app->useEnvironmentPath(sys_get_temp_dir());
+        }
+
         $app->make(Kernel::class)->bootstrap();
 
         return $app;

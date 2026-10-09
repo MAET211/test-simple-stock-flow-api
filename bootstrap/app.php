@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
         TrimStrings::skipWhen(static fn (): bool => true);
         ConvertEmptyStringsToNull::skipWhen(static fn (): bool => true);
     })
+    ->withCommands([
+        __DIR__.'/../app/Console/Commands',
+    ])
     ->withExceptions(function (Exceptions $exceptions): void {
         // A5 replaces this with the single ErrorHandler (architecture.md section 4).
     })

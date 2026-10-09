@@ -18,10 +18,10 @@ final class DatabaseSandbox
             return;
         }
 
-        $host = (string) env('DB_HOST', '127.0.0.1');
-        $port = (string) env('DB_PORT', '3306');
-        $rootPassword = (string) env('DB_PASSWORD', '');
-        $database = (string) config('database.connections.mysql.database', 'stockflow_test');
+        $host = is_string($val = config('database.connections.mysql.host')) ? $val : '127.0.0.1';
+        $port = is_string($val = config('database.connections.mysql.port')) ? $val : '3306';
+        $rootPassword = is_string($val = config('database.connections.mysql.password')) ? $val : '';
+        $database = is_string($val = config('database.connections.mysql.database')) ? $val : 'stockflow_test';
 
         if (! str_ends_with($database, '_test')) {
             throw new \RuntimeException("Refusing to initialize sandbox on non-test database: {$database}");
@@ -65,6 +65,17 @@ final class DatabaseSandbox
             DB::table('sale')->delete();
             DB::table('product')->delete();
             DB::table('user')->delete();
+
+            if (DB::table('category')->count() === 0) {
+                /** @var class-string $seederClass */
+                $seederClass = 'App\\Core\\Infrastructure\\Adapters\\Out\\Persistence\\Seeders\\CategorySeeder';
+                if (class_exists($seederClass)) {
+                    Artisan::call('db:seed', [
+                        '--class' => $seederClass,
+                        '--force' => true,
+                    ]);
+                }
+            }
         } catch (\Throwable) {
             // Tables may not exist in early test stages
         }

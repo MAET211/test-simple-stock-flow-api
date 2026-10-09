@@ -6,10 +6,14 @@ use Illuminate\Support\Facades\DB;
 
 test('schema five tables are innoDB and utf8mb4_0900_ai_ci', function (): void {
     $tables = DB::table('information_schema.tables')
-        ->select('table_name', 'engine', 'table_collation')
-        ->where('table_schema', 'stockflow_test')
-        ->where('table_name', '<>', 'migrations')
-        ->orderBy('table_name')
+        ->select(
+            'TABLE_NAME as table_name',
+            'ENGINE as engine',
+            'TABLE_COLLATION as table_collation'
+        )
+        ->where('TABLE_SCHEMA', 'stockflow_test')
+        ->where('TABLE_NAME', '<>', 'migrations')
+        ->orderBy('TABLE_NAME')
         ->get();
 
     expect($tables->pluck('table_name')->all())->toBe([
@@ -28,11 +32,16 @@ test('schema five tables are innoDB and utf8mb4_0900_ai_ci', function (): void {
 
 test('schema 25 columns exist, no defaults, deleted_at and image_key are the only nullables', function (): void {
     $columns = DB::table('information_schema.columns')
-        ->select('table_name', 'column_name', 'is_nullable', 'column_default')
-        ->where('table_schema', 'stockflow_test')
-        ->where('table_name', '<>', 'migrations')
-        ->orderBy('table_name')
-        ->orderBy('ordinal_position')
+        ->select(
+            'TABLE_NAME as table_name',
+            'COLUMN_NAME as column_name',
+            'IS_NULLABLE as is_nullable',
+            'COLUMN_DEFAULT as column_default'
+        )
+        ->where('TABLE_SCHEMA', 'stockflow_test')
+        ->where('TABLE_NAME', '<>', 'migrations')
+        ->orderBy('TABLE_NAME')
+        ->orderBy('ORDINAL_POSITION')
         ->get();
 
     expect($columns)->toHaveCount(25);
@@ -63,27 +72,32 @@ test('schema binary collations match contract', function (): void {
     foreach ($asciiBinCols as $colStr) {
         [$table, $col] = explode('.', $colStr);
         $res = DB::table('information_schema.columns')
-            ->where('table_schema', 'stockflow_test')
-            ->where('table_name', $table)
-            ->where('column_name', $col)
-            ->value('collation_name');
+            ->where('TABLE_SCHEMA', 'stockflow_test')
+            ->where('TABLE_NAME', $table)
+            ->where('COLUMN_NAME', $col)
+            ->value('COLLATION_NAME');
 
         expect($res)->toBe('ascii_bin', "Expected ascii_bin for {$colStr}");
     }
 
     $imageKeyCollation = DB::table('information_schema.columns')
-        ->where('table_schema', 'stockflow_test')
-        ->where('table_name', 'product')
-        ->where('column_name', 'image_key')
-        ->value('collation_name');
+        ->where('TABLE_SCHEMA', 'stockflow_test')
+        ->where('TABLE_NAME', 'product')
+        ->where('COLUMN_NAME', 'image_key')
+        ->value('COLLATION_NAME');
 
     expect($imageKeyCollation)->toBe('utf8mb4_bin');
 });
 
 test('schema 21 constraints match exact contract', function (): void {
     $constraints = DB::table('information_schema.table_constraints')
-        ->where('table_schema', 'stockflow_test')
-        ->where('table_name', '<>', 'migrations')
+        ->select(
+            'TABLE_NAME as table_name',
+            'CONSTRAINT_NAME as constraint_name',
+            'CONSTRAINT_TYPE as constraint_type'
+        )
+        ->where('TABLE_SCHEMA', 'stockflow_test')
+        ->where('TABLE_NAME', '<>', 'migrations')
         ->get();
 
     expect($constraints)->toHaveCount(21);
@@ -101,10 +115,14 @@ test('schema 21 constraints match exact contract', function (): void {
 
 test('schema nine ck_* constraints are enforced and no extra check exists', function (): void {
     $checks = DB::table('information_schema.table_constraints')
-        ->where('table_schema', 'stockflow_test')
-        ->where('table_name', '<>', 'migrations')
-        ->where('constraint_type', 'CHECK')
-        ->orderBy('constraint_name')
+        ->select(
+            'CONSTRAINT_NAME as constraint_name',
+            'ENFORCED as enforced'
+        )
+        ->where('TABLE_SCHEMA', 'stockflow_test')
+        ->where('TABLE_NAME', '<>', 'migrations')
+        ->where('CONSTRAINT_TYPE', 'CHECK')
+        ->orderBy('CONSTRAINT_NAME')
         ->get();
 
     $expectedChecks = [
@@ -128,39 +146,44 @@ test('schema nine ck_* constraints are enforced and no extra check exists', func
 
 test('schema four foreign keys respect contract actions', function (): void {
     $fks = DB::table('information_schema.referential_constraints')
-        ->where('constraint_schema', 'stockflow_test')
-        ->orderBy('constraint_name')
+        ->select(
+            'CONSTRAINT_NAME as constraint_name',
+            'DELETE_RULE as delete_rule',
+            'UPDATE_RULE as update_rule'
+        )
+        ->where('CONSTRAINT_SCHEMA', 'stockflow_test')
+        ->orderBy('CONSTRAINT_NAME')
         ->get()
-        ->keyBy('CONSTRAINT_NAME');
+        ->keyBy('constraint_name');
 
     expect($fks)->toHaveCount(4);
 
-    expect($fks->get('fk_product_category_id')->DELETE_RULE)->toBe('RESTRICT')
-        ->and($fks->get('fk_product_category_id')->UPDATE_RULE)->toBe('NO ACTION');
+    expect($fks->get('fk_product_category_id')->delete_rule)->toBe('RESTRICT')
+        ->and($fks->get('fk_product_category_id')->update_rule)->toBe('NO ACTION');
 
-    expect($fks->get('fk_sale_sold_by_user_id')->DELETE_RULE)->toBe('RESTRICT')
-        ->and($fks->get('fk_sale_sold_by_user_id')->UPDATE_RULE)->toBe('NO ACTION');
+    expect($fks->get('fk_sale_sold_by_user_id')->delete_rule)->toBe('RESTRICT')
+        ->and($fks->get('fk_sale_sold_by_user_id')->update_rule)->toBe('NO ACTION');
 
-    expect($fks->get('fk_sale_item_sale_id')->DELETE_RULE)->toBe('CASCADE')
-        ->and($fks->get('fk_sale_item_sale_id')->UPDATE_RULE)->toBe('NO ACTION');
+    expect($fks->get('fk_sale_item_sale_id')->delete_rule)->toBe('CASCADE')
+        ->and($fks->get('fk_sale_item_sale_id')->update_rule)->toBe('NO ACTION');
 
-    expect($fks->get('fk_sale_item_product_id')->DELETE_RULE)->toBe('RESTRICT')
-        ->and($fks->get('fk_sale_item_product_id')->UPDATE_RULE)->toBe('NO ACTION');
+    expect($fks->get('fk_sale_item_product_id')->delete_rule)->toBe('RESTRICT')
+        ->and($fks->get('fk_sale_item_product_id')->update_rule)->toBe('NO ACTION');
 });
 
 test('schema 13 distinct indexes exist with expected columns in order', function (): void {
     $indexes = DB::table('information_schema.statistics')
         ->select(
-            'table_name',
-            'index_name',
-            'non_unique',
-            DB::raw('GROUP_CONCAT(column_name ORDER BY seq_in_index) as columnas')
+            'TABLE_NAME as table_name',
+            'INDEX_NAME as index_name',
+            'NON_UNIQUE as non_unique',
+            DB::raw('GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) as columnas')
         )
-        ->where('table_schema', 'stockflow_test')
-        ->where('table_name', '<>', 'migrations')
-        ->groupBy('table_name', 'index_name', 'non_unique')
-        ->orderBy('table_name')
-        ->orderBy('index_name')
+        ->where('TABLE_SCHEMA', 'stockflow_test')
+        ->where('TABLE_NAME', '<>', 'migrations')
+        ->groupBy('TABLE_NAME', 'INDEX_NAME', 'NON_UNIQUE')
+        ->orderBy('TABLE_NAME')
+        ->orderBy('INDEX_NAME')
         ->get();
 
     expect($indexes)->toHaveCount(13);
@@ -183,10 +206,10 @@ test('schema 13 distinct indexes exist with expected columns in order', function
 
 test('schema sale_item.sale_id is NOT NULL', function (): void {
     $nullable = DB::table('information_schema.columns')
-        ->where('table_schema', 'stockflow_test')
-        ->where('table_name', 'sale_item')
-        ->where('column_name', 'sale_id')
-        ->value('is_nullable');
+        ->where('TABLE_SCHEMA', 'stockflow_test')
+        ->where('TABLE_NAME', 'sale_item')
+        ->where('COLUMN_NAME', 'sale_id')
+        ->value('IS_NULLABLE');
 
     expect($nullable)->toBe('NO');
 });

@@ -9,10 +9,16 @@ if [ ! -f "$ENV_FILE" ]; then
     exit 1
 fi
 
+# Read DB_ROOT_PASSWORD and APP_KEY from .env
 DB_ROOT_PASSWORD=$(grep -E '^DB_ROOT_PASSWORD=' "$ENV_FILE" | cut -d '=' -f2- | tr -d '\r')
 if [ -z "$DB_ROOT_PASSWORD" ]; then
     echo "Error: DB_ROOT_PASSWORD not found or empty in $ENV_FILE" >&2
     exit 1
+fi
+
+APP_KEY=$(grep -E '^APP_KEY=' "$ENV_FILE" | cut -d '=' -f2- | tr -d '\r')
+if [ -z "$APP_KEY" ]; then
+    APP_KEY="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 fi
 
 if [ -z "$(docker images -q stockflow-api-dev 2>/dev/null)" ]; then
@@ -22,12 +28,12 @@ fi
 
 if [ "$1" = "pint" ]; then
     shift
-    exec docker run --rm \
+    exec docker run --rm --entrypoint "" \
         -v "$PWD:/var/www/html" -v stockflow-api-vendor:/var/www/html/vendor -w /var/www/html \
         stockflow-api-dev vendor/bin/pint "$@"
 elif [ "$1" = "phpstan" ]; then
     shift
-    exec docker run --rm \
+    exec docker run --rm --entrypoint "" \
         -v "$PWD:/var/www/html" -v stockflow-api-vendor:/var/www/html/vendor -w /var/www/html \
         stockflow-api-dev vendor/bin/phpstan "$@"
 fi
@@ -53,6 +59,8 @@ fi
 
 exec docker run --rm --network test-simple-stock-flow_default \
     -v "$PWD:/var/www/html" -v stockflow-api-vendor:/var/www/html/vendor -w /var/www/html \
+    -e APP_KEY="$APP_KEY" \
     -e DB_HOST=db -e DB_PORT=3306 -e DB_DATABASE=stockflow_test \
     -e DB_USERNAME=root -e DB_PASSWORD="$DB_ROOT_PASSWORD" \
     stockflow-api-dev vendor/bin/pest "$@"
+

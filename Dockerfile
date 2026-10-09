@@ -33,9 +33,14 @@ RUN composer dump-autoload --optimize \
     && mkdir -p storage/framework/cache storage/framework/views storage/logs bootstrap/cache /var/media \
     && chown -R www-data:www-data storage bootstrap/cache /var/media
 
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=5 \
     CMD curl -fsS http://127.0.0.1:8000/health || exit 1
 
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+

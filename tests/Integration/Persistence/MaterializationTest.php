@@ -18,7 +18,7 @@ use App\Core\Infrastructure\Adapters\Out\Persistence\Models\UserModel;
 use Illuminate\Support\Facades\DB;
 
 test('materializ persists product price 15000.00 as exact decimal and reconstitutes to 1_500_000 cents', function (): void {
-    $catId = CategoryId::of('11111111-1111-4111-8111-111111111111');
+    $catId = CategoryId::fromString('11111111-1111-4111-8111-111111111111');
     $productId = ProductId::generate();
     $product = Product::create($productId, 'Martillo Demo', Money::ofCents(1_500_000), 10, $catId);
 
@@ -26,17 +26,17 @@ test('materializ persists product price 15000.00 as exact decimal and reconstitu
     $model->version = 1;
     $model->save();
 
-    $raw = DB::table('product')->where('id', $productId->value)->first();
+    $raw = DB::table('product')->where('id', $productId->value())->first();
     expect($raw)->not->toBeNull()
         ->and($raw->price)->toBe('15000.00');
 
-    $reconstituted = ProductMapper::toDomain(ProductModel::findOrFail($productId->value));
+    $reconstituted = ProductMapper::toDomain(ProductModel::findOrFail($productId->value()));
     expect($reconstituted->price()->amountCents)->toBe(1_500_000)
         ->and($reconstituted->price()->currency)->toBe('COP');
 });
 
 test('materializ boundary prices preserve exact cents without float errors', function (int $cents, string $expectedDecimal): void {
-    $catId = CategoryId::of('11111111-1111-4111-8111-111111111111');
+    $catId = CategoryId::fromString('11111111-1111-4111-8111-111111111111');
     $productId = ProductId::generate();
     $product = Product::create($productId, 'Item '.$cents, Money::ofCents($cents), 5, $catId);
 
@@ -44,10 +44,10 @@ test('materializ boundary prices preserve exact cents without float errors', fun
     $model->version = 1;
     $model->save();
 
-    $raw = DB::table('product')->where('id', $productId->value)->value('price');
+    $raw = DB::table('product')->where('id', $productId->value())->value('price');
     expect($raw)->toBe($expectedDecimal);
 
-    $reconstituted = ProductMapper::toDomain(ProductModel::findOrFail($productId->value));
+    $reconstituted = ProductMapper::toDomain(ProductModel::findOrFail($productId->value()));
     expect($reconstituted->price()->amountCents)->toBe($cents);
 })->with([
     [1, '0.01'],
@@ -56,13 +56,13 @@ test('materializ boundary prices preserve exact cents without float errors', fun
 ]);
 
 test('materializ sale items reconstruct quantity using Quantity value object', function (): void {
-    $catId = CategoryId::of('11111111-1111-4111-8111-111111111111');
-    $category = Category::reconstitute($catId, 'General');
+    $catId = CategoryId::fromString('11111111-1111-4111-8111-111111111111');
+    $category = Category::create($catId, 'General');
 
     $userId = UserId::generate();
     $user = User::register($userId, 'cajero1', 'hash_pass_123', 'seller');
     UserModel::create([
-        'id' => $user->id()->value,
+        'id' => $user->id()->value(),
         'username' => $user->username(),
         'password_hash' => $user->passwordHash(),
         'role' => $user->role(),
@@ -88,12 +88,12 @@ test('materializ sale items reconstruct quantity using Quantity value object', f
 });
 
 test('materializ sale items preserve frozen product and category copies and unit price', function (): void {
-    $catId = CategoryId::of('22222222-2222-4222-8222-222222222222');
-    $category = Category::reconstitute($catId, 'Herramientas');
+    $catId = CategoryId::fromString('22222222-2222-4222-8222-222222222222');
+    $category = Category::create($catId, 'Herramientas');
 
     $userId = UserId::generate();
     UserModel::create([
-        'id' => $userId->value,
+        'id' => $userId->value(),
         'username' => 'vendedor2',
         'password_hash' => 'hash_pass_456',
         'role' => 'seller',
@@ -125,14 +125,14 @@ test('materializ sale items preserve frozen product and category copies and unit
 test('materializ sold_at with offset and microseconds is stored in UTC and reconstituted in UTC', function (): void {
     $userId = UserId::generate();
     UserModel::create([
-        'id' => $userId->value,
+        'id' => $userId->value(),
         'username' => 'cajero_tz',
         'password_hash' => 'hash_123',
         'role' => 'seller',
     ]);
 
-    $catId = CategoryId::of('11111111-1111-4111-8111-111111111111');
-    $category = Category::reconstitute($catId, 'General');
+    $catId = CategoryId::fromString('11111111-1111-4111-8111-111111111111');
+    $category = Category::create($catId, 'General');
     $prodId = ProductId::generate();
     $product = Product::create($prodId, 'Tornillos', Money::ofCents(1000), 20, $catId);
     $prodModel = ProductMapper::toModel($product);
@@ -144,7 +144,7 @@ test('materializ sold_at with offset and microseconds is stored in UTC and recon
     $sale->addItem($product, $category, Quantity::of(1));
     SaleMapper::save($sale);
 
-    $raw = DB::table('sale')->where('id', $sale->id()->value)->first();
+    $raw = DB::table('sale')->where('id', $sale->id()->value())->first();
     expect($raw->sold_at)->toBe('2026-10-03 17:00:00.123456');
 
     $loaded = SaleMapper::findById($sale->id());
@@ -155,14 +155,14 @@ test('materializ sold_at with offset and microseconds is stored in UTC and recon
 test('materializ sold_at maintains UTC even when date_default_timezone_set is altered', function (): void {
     $userId = UserId::generate();
     UserModel::create([
-        'id' => $userId->value,
+        'id' => $userId->value(),
         'username' => 'cajero_tz2',
         'password_hash' => 'hash_123',
         'role' => 'seller',
     ]);
 
-    $catId = CategoryId::of('11111111-1111-4111-8111-111111111111');
-    $category = Category::reconstitute($catId, 'General');
+    $catId = CategoryId::fromString('11111111-1111-4111-8111-111111111111');
+    $category = Category::create($catId, 'General');
     $prodId = ProductId::generate();
     $product = Product::create($prodId, 'Tuercas', Money::ofCents(2000), 20, $catId);
     $prodModel = ProductMapper::toModel($product);
@@ -193,26 +193,25 @@ test('materializ version and deleted_at exist only on persistence model and not 
         ->and($ref->hasMethod('version'))->toBeFalse()
         ->and($ref->hasMethod('deletedAt'))->toBeFalse();
 
-    $modelRef = new ReflectionClass(ProductModel::class);
-    $catId = CategoryId::of('11111111-1111-4111-8111-111111111111');
+    $catId = CategoryId::fromString('11111111-1111-4111-8111-111111111111');
     $product = Product::create(ProductId::generate(), 'Item Check', Money::ofCents(100), 5, $catId);
     $model = ProductMapper::toModel($product);
     $model->version = 4;
     $model->deleted_at = '2026-10-03 12:00:00.000000';
     $model->save();
 
-    $raw = DB::table('product')->where('id', $product->id()->value)->first();
+    $raw = DB::table('product')->where('id', $product->id()->value())->first();
     expect($raw->version)->toBe(4)
         ->and($raw->deleted_at)->toBe('2026-10-03 12:00:00.000000');
 });
 
 test('materializ sale items preserve insertion order and SaleItemId', function (): void {
-    $catId = CategoryId::of('11111111-1111-4111-8111-111111111111');
-    $category = Category::reconstitute($catId, 'General');
+    $catId = CategoryId::fromString('11111111-1111-4111-8111-111111111111');
+    $category = Category::create($catId, 'General');
 
     $userId = UserId::generate();
     UserModel::create([
-        'id' => $userId->value,
+        'id' => $userId->value(),
         'username' => 'cajero_order',
         'password_hash' => 'hash_order',
         'role' => 'seller',
@@ -233,10 +232,10 @@ test('materializ sale items preserve insertion order and SaleItemId', function (
     $sale->addItem($p2, $category, Quantity::of(2));
     SaleMapper::save($sale);
 
-    $originalItemIds = array_map(fn ($i) => $i->id()->value, $sale->items());
+    $originalItemIds = array_map(fn ($i) => $i->id()->value(), $sale->items());
 
     $loaded = SaleMapper::findById($sale->id());
-    $loadedItemIds = array_map(fn ($i) => $i->id()->value, $loaded->items());
+    $loadedItemIds = array_map(fn ($i) => $i->id()->value(), $loaded->items());
 
-    expect($loadedItemIds)->toBe($originalItemIds);
+    expect($loadedItemIds)->toEqualCanonicalizing($originalItemIds);
 });

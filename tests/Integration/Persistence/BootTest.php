@@ -9,6 +9,7 @@ test('boot creates schema and leaves 5 categories on empty database', function (
     $dbName = (string) config('database.connections.mysql.database');
     DB::statement('DROP DATABASE IF EXISTS `'.$dbName.'`');
     DB::statement('CREATE DATABASE `'.$dbName.'` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci');
+    DB::statement('USE `'.$dbName.'`');
 
     $exitCode = Artisan::call('stockflow:boot');
     expect($exitCode)->toBe(0);
@@ -54,11 +55,11 @@ test('boot migrate:status marks all five migrations as executed', function (): v
 test('boot fresh migrations produce identical schema hash', function (): void {
     $computeSchemaHash = function (): string {
         $cols = DB::table('information_schema.columns')
-            ->select('table_name', 'column_name', 'column_type', 'is_nullable', 'collation_name')
-            ->where('table_schema', 'stockflow_test')
-            ->where('table_name', '<>', 'migrations')
-            ->orderBy('table_name')
-            ->orderBy('ordinal_position')
+            ->select('TABLE_NAME as table_name', 'COLUMN_NAME as column_name', 'COLUMN_TYPE as column_type', 'IS_NULLABLE as is_nullable', 'COLLATION_NAME as collation_name')
+            ->where('TABLE_SCHEMA', 'stockflow_test')
+            ->where('TABLE_NAME', '<>', 'migrations')
+            ->orderBy('TABLE_NAME')
+            ->orderBy('ORDINAL_POSITION')
             ->get();
 
         return hash('sha256', serialize($cols));
@@ -71,6 +72,8 @@ test('boot fresh migrations produce identical schema hash', function (): void {
     $hash2 = $computeSchemaHash();
 
     expect($hash1)->toBe($hash2);
+
+    Artisan::call('stockflow:boot');
 });
 
 test('boot fails and names missing env var when mandatory variable is absent', function (string $missingVar): void {

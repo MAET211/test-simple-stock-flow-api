@@ -40,6 +40,7 @@ abstract class TestCase extends BaseTestCase
         }
 
         DatabaseSandbox::init();
+        DatabaseSandbox::cleanTables();
     }
 
     protected function tearDown(): void

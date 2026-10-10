@@ -15,6 +15,6 @@ final class CategoryController
         $categories = $productPort->listCategories();
         $wire = array_map([JsonWire::class, 'categoryToWire'], $categories);
 
-        return new JsonResponse($wire, 200);
+        return new JsonResponse($wire, 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

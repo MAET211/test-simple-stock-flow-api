@@ -57,10 +57,29 @@ if [ "$RUN_DB" = "1" ]; then
     docker compose -f ../test-simple-stock-flow-infra/docker-compose.yml --env-file "$ENV_FILE" up -d --wait db
 fi
 
+JWT_SIGNING_KEY=$(grep -E '^JWT_SIGNING_KEY=' "$ENV_FILE" | cut -d '=' -f2- | tr -d '\r')
+if [ -z "$JWT_SIGNING_KEY" ]; then
+    JWT_SIGNING_KEY="jwt_secret_signing_key_at_least_32_characters_long_for_dev"
+fi
+
+ADMIN_EMAIL=$(grep -E '^ADMIN_EMAIL=' "$ENV_FILE" | cut -d '=' -f2- | tr -d '\r')
+if [ -z "$ADMIN_EMAIL" ]; then
+    ADMIN_EMAIL="admin@example.com"
+fi
+
+ADMIN_PASSWORD=$(grep -E '^ADMIN_PASSWORD=' "$ENV_FILE" | cut -d '=' -f2- | tr -d '\r')
+if [ -z "$ADMIN_PASSWORD" ]; then
+    ADMIN_PASSWORD="AdminPassword123!"
+fi
+
 exec docker run --rm --network test-simple-stock-flow_default \
     -v "$PWD:/var/www/html" -v stockflow-api-vendor:/var/www/html/vendor -w /var/www/html \
     -e APP_KEY="$APP_KEY" \
     -e DB_HOST=db -e DB_PORT=3306 -e DB_DATABASE=stockflow_test \
     -e DB_USERNAME=root -e DB_PASSWORD="$DB_ROOT_PASSWORD" \
+    -e JWT_SIGNING_KEY="$JWT_SIGNING_KEY" \
+    -e ADMIN_EMAIL="$ADMIN_EMAIL" \
+    -e ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+    -e MEDIA_ROOT="/tmp/media" \
     stockflow-api-dev vendor/bin/pest "$@"
 

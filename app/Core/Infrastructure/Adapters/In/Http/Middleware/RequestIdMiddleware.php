@@ -27,6 +27,13 @@ final class RequestIdMiddleware
 
         $response->headers->set('X-Request-ID', $requestId);
 
+        Log::info(sprintf('%s /%s %d', $request->method(), ltrim($request->path(), '/'), $response->getStatusCode()), [
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'status' => $response->getStatusCode(),
+            'request_id' => $requestId,
+        ]);
+
         return $response;
     }
 }

@@ -77,7 +77,9 @@ test('boot fresh migrations produce identical schema hash', function (): void {
 });
 
 test('boot fails and names missing env var when mandatory variable is absent', function (string $missingVar): void {
-    $original = getenv($missingVar);
+    $origEnv = $_ENV[$missingVar] ?? null;
+    $origServer = $_SERVER[$missingVar] ?? null;
+    $origGetEnv = getenv($missingVar);
     try {
         putenv($missingVar); // Unset
         unset($_ENV[$missingVar], $_SERVER[$missingVar]);
@@ -88,13 +90,19 @@ test('boot fails and names missing env var when mandatory variable is absent', f
         expect($exitCode)->not->toBe(0)
             ->and($output)->toContain($missingVar);
     } finally {
-        if ($original !== false) {
-            putenv("{$missingVar}={$original}");
-            $_ENV[$missingVar] = $original;
-            $_SERVER[$missingVar] = $original;
+        if ($origGetEnv !== false) {
+            putenv("{$missingVar}={$origGetEnv}");
+        }
+        if ($origEnv !== null) {
+            $_ENV[$missingVar] = $origEnv;
+        }
+        if ($origServer !== null) {
+            $_SERVER[$missingVar] = $origServer;
         }
     }
 })->with([
     'APP_KEY',
     'DB_HOST',
+    'ADMIN_EMAIL',
+    'ADMIN_PASSWORD',
 ]);

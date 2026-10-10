@@ -17,5 +17,9 @@
         <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" force="true"/>
         <env name="DB_DATABASE" value="stockflow_test" force="true"/>
+        <env name="JWT_SIGNING_KEY" value="jwt_secret_signing_key_at_least_32_characters_long_for_dev" force="true"/>
+        <env name="ADMIN_EMAIL" value="admin@example.com" force="true"/>
+        <env name="ADMIN_PASSWORD" value="AdminPassword123!" force="true"/>
+        <env name="MEDIA_ROOT" value="/tmp/media" force="true"/>
     </php>
 </phpunit>

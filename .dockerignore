@@ -5,6 +5,7 @@ node_modules
 .phpunit.cache
 .phpstan.cache
 storage/logs/*
+bootstrap/cache/*.php
 tests
 Dockerfile
 .dockerignore

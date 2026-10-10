@@ -29,7 +29,8 @@ RUN if [ "$INSTALL_DEV" = "1" ]; then \
     fi
 
 COPY . .
-RUN composer dump-autoload --optimize \
+RUN rm -f bootstrap/cache/*.php \
+    && composer dump-autoload --optimize \
     && mkdir -p storage/framework/cache storage/framework/views storage/logs bootstrap/cache /var/media \
     && chown -R www-data:www-data storage bootstrap/cache /var/media
 

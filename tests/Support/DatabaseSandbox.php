@@ -36,8 +36,7 @@ final class DatabaseSandbox
             ]
         );
 
-        $pdo->exec("DROP DATABASE IF EXISTS `{$database}`");
-        $pdo->exec("CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
 
         Artisan::call('migrate', ['--force' => true]);
 
@@ -61,6 +60,10 @@ final class DatabaseSandbox
     public static function cleanTables(): void
     {
         try {
+            while (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
             DB::table('sale_item')->delete();
             DB::table('sale')->delete();
             DB::table('product')->delete();

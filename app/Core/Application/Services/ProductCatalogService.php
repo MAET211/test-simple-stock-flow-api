@@ -105,11 +105,11 @@ final readonly class ProductCatalogService implements ManageProducts
         $oldKey = $product->imageKey();
         if ($oldKey !== null) {
             $product->attachImage(null);
-            $this->productRepository->save($product);
+            $this->productRepository->save($product, discontinue: true);
             $this->unitOfWork->commit();
             $this->fileStorage->delete($oldKey);
         } else {
-            $this->productRepository->save($product);
+            $this->productRepository->save($product, discontinue: true);
             $this->unitOfWork->commit();
         }
     }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Core\Infrastructure\Adapters\In\Http\Errors\ErrorHandler;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withExceptions(function (Exceptions $exceptions): void {
-        // A5 replaces this with the single ErrorHandler (architecture.md section 4).
+        $exceptions->render(static fn (Throwable $e) => ErrorHandler::render($e));
     })
     ->create();

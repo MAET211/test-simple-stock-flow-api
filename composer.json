@@ -9,6 +9,7 @@
         "ext-intl": "*",
         "ext-mbstring": "*",
         "ext-pdo": "*",
+        "firebase/php-jwt": "^7.2",
         "laravel/framework": "^11.0"
     },
     "require-dev": {

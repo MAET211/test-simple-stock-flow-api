@@ -108,7 +108,7 @@ final class FakeProductRepository implements ProductRepository
         $this->products[$product->id()->value()] = $product;
     }
 
-    public function save(Product $product): void
+    public function save(Product $product, bool $discontinue = false): void
     {
         $this->saveCalls++;
         $this->currentAttempt++;
@@ -118,6 +118,9 @@ final class FakeProductRepository implements ProductRepository
         }
 
         $this->products[$product->id()->value()] = $product;
+        if ($discontinue) {
+            $this->discontinued[$product->id()->value()] = true;
+        }
     }
 
     public function markDiscontinued(ProductId $id): void

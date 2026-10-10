@@ -28,5 +28,5 @@ interface ProductRepository
 
     public function add(Product $product): void;
 
-    public function save(Product $product): void;
+    public function save(Product $product, bool $discontinue = false): void;
 }

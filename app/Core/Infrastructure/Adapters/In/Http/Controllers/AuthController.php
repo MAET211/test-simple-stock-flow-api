@@ -49,8 +49,13 @@ final class AuthController
         if (! array_key_exists('password', $body) || $body['password'] === null) {
             $errors['password'] = ['Field required'];
         }
-        if (! array_key_exists('role', $body) || $body['role'] === null) {
-            $errors['role'] = ['Field required'];
+        $role = $body['role'] ?? 'seller';
+        if ($role === null || (is_string($role) && trim($role) === '')) {
+            $role = 'seller';
+        }
+
+        if (! is_string($role)) {
+            $errors['role'] = ['Expected string'];
         }
 
         if ($errors !== []) {
@@ -61,10 +66,8 @@ final class AuthController
         $username = $body['username'];
         /** @var string $password */
         $password = $body['password'];
-        /** @var string $role */
-        $role = $body['role'];
 
-        $userId = $authPort->register((string) $username, (string) $password, (string) $role);
+        $userId = $authPort->register((string) $username, (string) $password, $role);
 
         // 201 Created WITHOUT Location header per D-C6 contract
         return new JsonResponse(['id' => $userId->value()], 201);
